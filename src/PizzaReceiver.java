@@ -1,13 +1,3 @@
-/**
- * Project: Lab4
- * Purpose Details: Receive Pizza JSON from RabbitMQ
- * Course: IST242
- * Author: Ziyan Zheng
- * Date Developed: 03/31/2026
- * Last Date Changed: 03/31/2026
- * Rev: 1.0
- */
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.*;
 
@@ -23,19 +13,26 @@ public class PizzaReceiver {
         Channel channel = connection.createChannel();
 
         channel.queueDeclare(QUEUE_NAME, false, false, false, null);
-        System.out.println("Waiting for pizza orders...");
+        System.out.println("Waiting for pizza messages...");
 
         DeliverCallback callback = (consumerTag, delivery) -> {
-            String receivedPizzaJson = new String(delivery.getBody());
-            System.out.println("Received: " + receivedPizzaJson);
+            String message = new String(delivery.getBody());
+            System.out.println("\nReceived message: " + message);
 
-            ObjectMapper jsonToPizza = new ObjectMapper();
-            Pizza receivedPizza = jsonToPizza.readValue(receivedPizzaJson, Pizza.class);
-
-            System.out.println("Pizza ID: " + receivedPizza.getId());
-            System.out.println("Size: " + receivedPizza.getSize());
-            System.out.println("Toppings: " + receivedPizza.getToppings());
-            System.out.println("Price: " + receivedPizza.getPrice());
+            if (message.startsWith("{")) {
+                ObjectMapper jsonToPizza = new ObjectMapper();
+                Pizza receivedPizza = jsonToPizza.readValue(message, Pizza.class);
+                System.out.println("ID: " + receivedPizza.getId());
+                System.out.println("Size: " + receivedPizza.getSize());
+                System.out.println("Toppings: " + receivedPizza.getToppings());
+                System.out.println("Price: $" + receivedPizza.getPrice());
+            } else {
+                String[] parts = message.split("\\|");
+                System.out.println("ID: " + parts[0]);
+                System.out.println("Size: " + parts[1]);
+                System.out.println("Toppings: " + parts[2]);
+                System.out.println("Price: $" + parts[3]);
+            }
         };
 
         channel.basicConsume(QUEUE_NAME, true, callback, consumerTag -> {});
